@@ -52,6 +52,7 @@ button.main{background:var(--red)}button.main:hover{background:#c64545}
     <p id="sub">Connecting...</p>
     <div id="qrwrap" style="display:none"><div id="qrbox"></div><div id="code"></div></div>
     <div id="pinwrap" style="display:none"><input class="pin" id="pin" inputmode="numeric" maxlength="4" placeholder="----"><br><button class="main" id="pingo">Watch</button></div>
+    <div id="dbg" style="margin-top:16px;text-align:left;font:11px/1.55 ui-monospace,Consolas,monospace;color:rgba(255,255,255,.5);word-break:break-all"></div>
     <ul class="steps" id="steps" style="display:none">
       <li id="s1"><span class="dot"></span>Finding your phone</li>
       <li id="s2"><span class="dot"></span>Making a secure connection</li>
@@ -78,7 +79,8 @@ button.main{background:var(--red)}button.main:hover{background:#c64545}
 var SIG='0.peerjs.com',KEY='peerjs';
 var ICE=[
  {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},
- {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}
+ {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'},
+ {urls:['turn:freestun.net:3478','turns:freestun.net:5349'],username:'free',credential:'free'}
 ];
 function rnd(n){var c='abcdefghijkmnpqrstuvwxyz23456789',s='',a=crypto.getRandomValues(new Uint8Array(n));for(var i=0;i<n;i++)s+=c[a[i]%c.length];return s}
 function $(i){return document.getElementById(i)}
@@ -92,13 +94,15 @@ function showIntro(){$('intro').style.display='flex';$('stage').style.display='n
 function showStage(){$('intro').style.display='none';$('stage').style.display='block'}
 function toast(t){var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(function(){e.style.display='none'},2600)}
 function send(m){if(ws&&ws.readyState===1)ws.send(JSON.stringify(m))}
+var dlog=[],pend=[];
+function dbg(s){dlog.push(new Date().toTimeString().slice(0,8)+' '+s);if(dlog.length>7)dlog.shift();$('dbg').textContent=dlog.join('\n');$('dbg').style.whiteSpace='pre-wrap'}
 
 // ---- signalling -------------------------------------------------------
 function connectSignal(){
   if(!wantRetry)return;
   try{ws=new WebSocket('wss://'+SIG+'/peerjs?key='+KEY+'&id='+myId+'&token='+rnd(10))}catch(e){return later()}
-  ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}onMsg(m)};
-  ws.onclose=function(){sigOpen=false;clearInterval(hb);later()};
+  ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}if(m.type!=='HEARTBEAT')dbg('< '+m.type+(m.src?' from '+String(m.src).slice(0,6):''));onMsg(m)};
+  ws.onclose=function(){dbg('signalling closed');sigOpen=false;clearInterval(hb);later()};
   ws.onerror=function(){};
   hb=setInterval(function(){send({type:'HEARTBEAT'})},5000);
 }
@@ -110,7 +114,7 @@ function onMsg(m){
     case 'INVALID-KEY':setHead('Service unavailable','The connection service refused us. Please try again later.');break;
     case 'OFFER':if(m.payload&&m.payload.hello){phone=m.src;begin()}break;
     case 'ANSWER':onAnswer(m);break;
-    case 'CANDIDATE':if(pc&&m.src===phone&&m.payload&&m.payload.candidate)pc.addIceCandidate(m.payload.candidate).catch(function(){});break;
+    case 'CANDIDATE':if(m.src===phone&&m.payload&&m.payload.candidate){if(pc&&pc.remoteDescription)pc.addIceCandidate(m.payload.candidate).catch(function(e){dbg('addIce: '+e.name)});else pend.push(m.payload.candidate)}break;
     case 'EXPIRE':if(m.src===phone){setHead('Phone not found',room?'Casting is not running on the phone, or the link expired. Start casting in DocValley and open the link again.':'The phone went away.');$('steps').style.display='none'}break;
     case 'LEAVE':if(m.src===phone)ended();break;
   }
@@ -137,7 +141,7 @@ function begin(){
   clearTimeout(restartT);closePc();
   $('qrwrap').style.display='none';$('pinwrap').style.display='none';
   setHead('Connecting','Hold on, this takes a second.');steps(1);showIntro();
-  cid='c'+rnd(10);
+  cid='c'+rnd(10);pend=[];
   pc=new RTCPeerConnection({iceServers:ICE});
   pc.addTransceiver('video',{direction:'recvonly'});
   pc.ontrack=function(e){
@@ -146,17 +150,17 @@ function begin(){
     try{e.receiver.playoutDelayHint=0}catch(x){}
     v.play().catch(function(){});
   };
-  pc.onicecandidate=function(e){if(e.candidate)send({type:'CANDIDATE',dst:phone,payload:{candidate:e.candidate,type:'media',connectionId:cid}})};
-  pc.oniceconnectionstatechange=function(){if(pc&&pc.iceConnectionState==='checking')steps(3)};
+  pc.onicecandidate=function(e){if(e.candidate){var t=/ typ (\w+)/.exec(e.candidate.candidate);dbg('> candidate '+(t?t[1]:'?'));send({type:'CANDIDATE',dst:phone,payload:{candidate:e.candidate,type:'media',connectionId:cid}})}};
+  pc.oniceconnectionstatechange=function(){if(!pc)return;dbg('ice: '+pc.iceConnectionState);if(pc.iceConnectionState==='checking')steps(3)};
   pc.onconnectionstatechange=function(){
     if(!pc)return;var s=pc.connectionState;
-    if(s==='connected'){}
+    dbg('connection: '+s);
     if(s==='failed'){restartLater(1200)}
     if(s==='disconnected'){restartLater(5000)}
   };
   v.onplaying=function(){showStage();steps(4);startStats()};
   pc.createOffer().then(function(o){return pc.setLocalDescription(o).then(function(){
-    steps(2);
+    steps(2);dbg('> OFFER to phone');
     send({type:'OFFER',dst:phone,payload:{sdp:{type:'offer',sdp:o.sdp},type:'media',connectionId:cid,pin:pin}});
   })}).catch(function(){restartLater(1500)});
 }
@@ -164,7 +168,7 @@ function restartLater(ms){clearTimeout(restartT);restartT=setTimeout(function(){
 function onAnswer(m){
   var p=m.payload||{};if(m.src!==phone||!pc)return;
   if(p.error==='pin'){askPin(pin!=='');return}
-  if(p.sdp)pc.setRemoteDescription(p.sdp).then(function(){steps(3)}).catch(function(){restartLater(1500)});
+  if(p.sdp)pc.setRemoteDescription(p.sdp).then(function(){steps(3);var q=pend;pend=[];q.forEach(function(c){pc.addIceCandidate(c).catch(function(e){dbg('addIce: '+e.name)})})}).catch(function(e){dbg('setRemote failed: '+e.name);restartLater(1500)});
 }
 function askPin(wrong){
   closePc();showIntro();$('steps').style.display='none';
