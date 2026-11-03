@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DocValley Cast</title>
+<style>
+:root{--red:#b33a3a;--bg:#0a0a10}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:Inter,"Segoe UI",system-ui,sans-serif;overflow:hidden}
+#intro{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;animation:float 16s ease-in-out infinite}
+.o1{width:460px;height:460px;background:#b33a3a;left:-100px;top:-80px}
+.o2{width:420px;height:420px;background:#4b3fd1;right:-80px;bottom:-100px;animation-delay:-6s}
+.o3{width:320px;height:320px;background:#1e9e8b;left:55%;top:8%;animation-delay:-10s;opacity:.32}
+@keyframes float{50%{transform:translate(70px,50px) scale(1.18)}}
+.card{position:relative;z-index:1;width:100%;max-width:440px;text-align:center;padding:34px 32px;border-radius:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 30px 80px rgba(0,0,0,.5);animation:rise .7s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.97)}}
+.logo{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:linear-gradient(135deg,#b33a3a,#e0645a);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(179,58,58,.5)}
+h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
+p{margin:0;color:rgba(255,255,255,.68);line-height:1.5;font-size:15px}
+#qrbox{margin:20px auto 6px;display:inline-block;padding:14px;background:#fff;border-radius:20px;position:relative;box-shadow:0 0 0 0 rgba(179,58,58,.5);animation:glow 2.4s infinite}
+@keyframes glow{70%{box-shadow:0 0 0 22px rgba(179,58,58,0)}}
+#code{font-family:ui-monospace,Consolas,monospace;font-size:21px;letter-spacing:.22em;font-weight:800;margin-top:6px}
+.steps{list-style:none;padding:0;margin:22px 0 0;text-align:left;display:grid;gap:12px}
+.steps li{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.4);transition:color .3s;font-size:15px}
+.steps li.on{color:#fff}.steps li.done{color:#7ee0a5}
+.dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+.steps li.on .dot{animation:pulse 1.1s infinite}
+@keyframes pulse{50%{transform:scale(1.8);opacity:.35}}
+input.pin{font-size:28px;letter-spacing:.4em;text-align:center;width:190px;padding:10px;border-radius:14px;border:0;margin:16px 0 8px;outline:none}
+button{font:inherit;cursor:pointer;color:#fff;background:rgba(255,255,255,.15);border:0;border-radius:12px;padding:9px 16px;font-weight:700;transition:background .2s,transform .1s}
+button:hover{background:rgba(255,255,255,.26)}button:active{transform:scale(.96)}
+button.main{background:var(--red)}button.main:hover{background:#c64545}
+#stage{position:fixed;inset:0;background:#000;display:none}
+#v{width:100%;height:100%;object-fit:contain;background:#000}
+#bar{position:fixed;top:14px;left:14px;right:14px;display:flex;gap:8px;align-items:center;transition:opacity .5s;z-index:3}
+#bar .sp{flex:1}
+.live{display:flex;align-items:center;gap:8px;background:var(--red);border-radius:10px;padding:7px 12px;font-weight:800;font-size:13px;letter-spacing:.08em;box-shadow:0 6px 20px rgba(179,58,58,.45)}
+.live i{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
+#stats{position:fixed;left:14px;bottom:14px;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 16px;font:13px/1.7 ui-monospace,Consolas,monospace;display:none;z-index:3}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,20,26,.92);border:1px solid rgba(255,255,255,.16);padding:10px 18px;border-radius:12px;font-weight:600;display:none;z-index:5}
+.hide{opacity:0}.hidecursor{cursor:none}
+</style>
+</head>
+<body>
+<div id="intro">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  <div class="card" id="card">
+    <div class="logo"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M2 12a9 9 0 0 1 8 8"/><path d="M2 16a5 5 0 0 1 4 4"/><line x1="2" y1="20" x2="2.01" y2="20"/></svg></div>
+    <h1 id="title">DocValley Cast</h1>
+    <p id="sub">Connecting...</p>
+    <div id="qrwrap" style="display:none"><div id="qrbox"></div><div id="code"></div></div>
+    <div id="pinwrap" style="display:none"><input class="pin" id="pin" inputmode="numeric" maxlength="4" placeholder="----"><br><button class="main" id="pingo">Watch</button></div>
+    <ul class="steps" id="steps" style="display:none">
+      <li id="s1"><span class="dot"></span>Finding your phone</li>
+      <li id="s2"><span class="dot"></span>Making a secure connection</li>
+      <li id="s3"><span class="dot"></span>Starting the live picture</li>
+    </ul>
+  </div>
+</div>
+<div id="stage">
+  <video id="v" autoplay muted playsinline></video>
+  <div id="bar">
+    <div class="live"><i></i>LIVE</div>
+    <div class="sp"></div>
+    <button id="bi" title="Statistics">Info</button>
+    <button id="bs" title="Save a picture">Snapshot</button>
+    <button id="bp" title="Picture in picture">PiP</button>
+    <button id="bf" title="Fullscreen">Fullscreen</button>
+  </div>
+  <div id="stats"></div>
+</div>
+<div id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+var SIG='0.peerjs.com',KEY='peerjs';
+var ICE=[
+ {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},
+ {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}
+];
+function rnd(n){var c='abcdefghijkmnpqrstuvwxyz23456789',s='',a=crypto.getRandomValues(new Uint8Array(n));for(var i=0;i<n;i++)s+=c[a[i]%c.length];return s}
+function $(i){return document.getElementById(i)}
+var myId='dv'+rnd(8),room=decodeURIComponent(location.hash.replace(/^#/,'')).trim(),pin='';
+var ws=null,hb=null,pc=null,cid='',phone=room||null,sigOpen=false,wantRetry=true,restartT=null,statT=null,lastBytes=0,lastT=0,idleT=null;
+var v=$('v');
+
+function setHead(t,s){$('title').textContent=t;$('sub').textContent=s}
+function steps(n){$('steps').style.display='grid';for(var i=1;i<=3;i++){var e=$('s'+i);e.className=i<n?'done':(i===n?'on':'')}}
+function showIntro(){$('intro').style.display='flex';$('stage').style.display='none'}
+function showStage(){$('intro').style.display='none';$('stage').style.display='block'}
+function toast(t){var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(function(){e.style.display='none'},2600)}
+function send(m){if(ws&&ws.readyState===1)ws.send(JSON.stringify(m))}
+
+// ---- signalling -------------------------------------------------------
+function connectSignal(){
+  if(!wantRetry)return;
+  try{ws=new WebSocket('wss://'+SIG+'/peerjs?key='+KEY+'&id='+myId+'&token='+rnd(10))}catch(e){return later()}
+  ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}onMsg(m)};
+  ws.onclose=function(){sigOpen=false;clearInterval(hb);later()};
+  ws.onerror=function(){};
+  hb=setInterval(function(){send({type:'HEARTBEAT'})},5000);
+}
+function later(){if(!wantRetry)return;setTimeout(connectSignal,2000)}
+function onMsg(m){
+  switch(m.type){
+    case 'OPEN':sigOpen=true;onOpen();break;
+    case 'ID-TAKEN':myId='dv'+rnd(8);try{ws.close()}catch(e){}break;
+    case 'INVALID-KEY':setHead('Service unavailable','The connection service refused us. Please try again later.');break;
+    case 'OFFER':if(m.payload&&m.payload.hello){phone=m.src;begin()}break;
+    case 'ANSWER':onAnswer(m);break;
+    case 'CANDIDATE':if(pc&&m.src===phone&&m.payload&&m.payload.candidate)pc.addIceCandidate(m.payload.candidate).catch(function(){});break;
+    case 'EXPIRE':if(m.src===phone){setHead('Phone not found',room?'Casting is not running on the phone, or the link expired. Start casting in DocValley and open the link again.':'The phone went away.');$('steps').style.display='none'}break;
+    case 'LEAVE':if(m.src===phone)ended();break;
+  }
+}
+function onOpen(){
+  if(room){phone=room;begin();return}
+  // pairing mode: show a QR for the phone to scan
+  $('steps').style.display='none';$('pinwrap').style.display='none';
+  setHead('Scan with DocValley','Open DocValley on your phone, tap Screen Cast, then Scan QR.');
+  $('qrwrap').style.display='block';$('code').textContent=myId.toUpperCase();
+  var box=$('qrbox');box.innerHTML='';
+  try{new QRCode(box,{text:'dvcast:'+myId,width:200,height:200,correctLevel:QRCode.CorrectLevel.M})}catch(e){box.style.display='none'}
+}
+function ended(){
+  closePc();showIntro();
+  if(room){setHead('Casting ended','The phone stopped casting. Start it again and this page reconnects by itself.');$('steps').style.display='none';restartT=setTimeout(begin,3000)}
+  else{phone=null;onOpen()}
+}
+
+// ---- WebRTC -----------------------------------------------------------
+function closePc(){clearInterval(statT);if(pc){try{pc.close()}catch(e){}pc=null}v.srcObject=null}
+function begin(){
+  if(!phone||!sigOpen)return;
+  clearTimeout(restartT);closePc();
+  $('qrwrap').style.display='none';$('pinwrap').style.display='none';
+  setHead('Connecting','Hold on, this takes a second.');steps(1);showIntro();
+  cid='c'+rnd(10);
+  pc=new RTCPeerConnection({iceServers:ICE});
+  pc.addTransceiver('video',{direction:'recvonly'});
+  pc.ontrack=function(e){
+    v.srcObject=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    try{e.receiver.jitterBufferTarget=0}catch(x){}
+    try{e.receiver.playoutDelayHint=0}catch(x){}
+    v.play().catch(function(){});
+  };
+  pc.onicecandidate=function(e){if(e.candidate)send({type:'CANDIDATE',dst:phone,payload:{candidate:e.candidate,type:'media',connectionId:cid}})};
+  pc.oniceconnectionstatechange=function(){if(pc&&pc.iceConnectionState==='checking')steps(3)};
+  pc.onconnectionstatechange=function(){
+    if(!pc)return;var s=pc.connectionState;
+    if(s==='connected'){}
+    if(s==='failed'){restartLater(1200)}
+    if(s==='disconnected'){restartLater(5000)}
+  };
+  v.onplaying=function(){showStage();steps(4);startStats()};
+  pc.createOffer().then(function(o){return pc.setLocalDescription(o).then(function(){
+    steps(2);
+    send({type:'OFFER',dst:phone,payload:{sdp:{type:'offer',sdp:o.sdp},type:'media',connectionId:cid,pin:pin}});
+  })}).catch(function(){restartLater(1500)});
+}
+function restartLater(ms){clearTimeout(restartT);restartT=setTimeout(function(){if(pc&&(pc.connectionState==='connected'&&v.readyState>2))return;begin()},ms)}
+function onAnswer(m){
+  var p=m.payload||{};if(m.src!==phone||!pc)return;
+  if(p.error==='pin'){askPin(pin!=='');return}
+  if(p.sdp)pc.setRemoteDescription(p.sdp).then(function(){steps(3)}).catch(function(){restartLater(1500)});
+}
+function askPin(wrong){
+  closePc();showIntro();$('steps').style.display='none';
+  setHead(wrong?'Wrong PIN':'Enter the PIN','Type the 4-digit PIN shown on your phone.');
+  $('pinwrap').style.display='block';var i=$('pin');i.value='';i.focus();
+}
+$('pingo').onclick=function(){pin=$('pin').value.trim();begin()};
+$('pin').onkeydown=function(e){if(e.key==='Enter')$('pingo').click()};
+
+// ---- live view helpers ------------------------------------------------
+function startStats(){
+  clearInterval(statT);lastBytes=0;lastT=0;
+  statT=setInterval(function(){
+    if(!pc)return;
+    pc.getStats().then(function(rep){
+      var w=0,h=0,fps=0,bytes=0,rtt=null,jit=0,lost=0,pairId=null,local={};
+      rep.forEach(function(r){
+        if(r.type==='inbound-rtp'&&(r.kind==='video'||r.mediaType==='video')){w=r.frameWidth||0;h=r.frameHeight||0;fps=r.framesPerSecond||0;bytes=r.bytesReceived||0;jit=r.jitter||0;lost=r.packetsLost||0}
+        if(r.type==='candidate-pair'&&r.nominated&&r.state==='succeeded'){rtt=r.currentRoundTripTime;pairId=r.localCandidateId}
+        if(r.type==='local-candidate')local[r.id]=r.candidateType;
+      });
+      var now=performance.now(),mbps=lastT?((bytes-lastBytes)*8/1e6)/((now-lastT)/1000):0;lastBytes=bytes;lastT=now;
+      var path=pairId&&local[pairId]?(local[pairId]==='relay'?'relay':'direct'):'-';
+      $('stats').innerHTML='Picture '+w+'x'+h+'<br>'+Math.round(fps)+' fps &middot; '+mbps.toFixed(1)+' Mbps<br>Delay '+(rtt!=null?Math.round(rtt*1000)+' ms':'-')+' &middot; '+path+'<br>Lost packets '+lost;
+    }).catch(function(){});
+  },1000);
+}
+$('bi').onclick=function(){var s=$('stats');s.style.display=s.style.display==='block'?'none':'block'};
+$('bf').onclick=function(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(function(){})};
+$('bp').onclick=function(){(document.pictureInPictureElement?document.exitPictureInPicture():v.requestPictureInPicture()).catch(function(){toast('Picture in picture is not available here')})};
+$('bs').onclick=function(){
+  if(!v.videoWidth)return;var c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='phone-screen-'+Date.now()+'.png';a.click();toast('Picture saved');
+};
+function wake(){var b=$('bar');b.classList.remove('hide');document.body.classList.remove('hidecursor');clearTimeout(idleT);idleT=setTimeout(function(){b.classList.add('hide');document.body.classList.add('hidecursor')},2800)}
+document.addEventListener('mousemove',wake);document.addEventListener('keydown',wake);wake();
+document.addEventListener('dblclick',function(){$('bf').click()});
+
+setHead('DocValley Cast',room?'Looking for your phone...':'Connecting to the cast service...');
+if(!window.RTCPeerConnection){setHead('Browser not supported','Please use a recent Chrome, Edge, Firefox or Safari.');wantRetry=false}
+else connectSignal();
+})();
+</script>
+</body>
+</html>
